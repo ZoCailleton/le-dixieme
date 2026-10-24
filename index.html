@@ -314,7 +314,8 @@ function play() {
   curDur = dur;
   audio.currentTime = 0;
   const p = $("play"); p.classList.remove("pulse"); void p.offsetWidth; p.classList.add("pulse");
-  audio.play().catch(() => { $("status").textContent = "Le navigateur a bloqué le son. Réessaie."; });
+  // AbortError = lecture précédente interrompue par celle-ci, pas un blocage
+  audio.play().catch(e => { if (e.name !== "AbortError") $("status").textContent = "Le navigateur a bloqué le son. Réessaie."; });
 }
 
 // Un seul écouteur : la durée vient de la dernière lecture demandée, jamais d'une plus ancienne.
