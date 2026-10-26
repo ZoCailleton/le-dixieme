@@ -39,7 +39,9 @@ h1 span { color: var(--accent); }
 .stats { display: flex; gap: 16px; font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .stats b { color: var(--fg); font-size: 18px; display: block; }
 
-.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips { display: grid; gap: 10px; }
+.group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.group-label { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); width: 100%; }
 .chip {
   font: 500 14px var(--body); color: var(--muted); background: transparent;
   border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
@@ -102,7 +104,7 @@ summary { cursor: pointer; color: var(--fg); font-weight: 500; }
   <header>
     <div>
       <h1>le dixi<span>è</span>me</h1>
-      <p class="tag">Trouve le son français en un dixième de seconde.</p>
+      <p class="tag">Trouve le son en un dixième de seconde.</p>
     </div>
     <div class="stats">
       <div>score<b id="score">0</b></div>
@@ -151,122 +153,131 @@ summary { cursor: pointer; color: var(--fg); font-weight: 500; }
   <details>
     <summary>Comment jouer</summary>
     <p>Appuie sur lecture : tu as 0,1 seconde. Chaque mauvaise réponse ou « Passer » débloque un extrait plus long : 0,5 s, 2 s, 8 s puis 15 s. Trouve en un minimum d'écoutes pour marquer plus de points (5 points au premier extrait, 1 au dernier). Le casque aide beaucoup.</p>
-    <p>Extraits fournis par Deezer.</p>
+    <p>Les morceaux viennent des playlists Deezer de chaque catégorie, donc ils changent quand Deezer les met à jour.</p>
   </details>
 </main>
 
 <script>
-// [titre, artiste]
-const SONGS = {
-  "Rap FR": [
-    ["Au DD","PNL"],["Le monde ou rien","PNL"],["DKR","Booba"],["Validée","Booba"],["On verra","Nekfeu"],
-    ["La terre est ronde","Orelsan"],["Basique","Orelsan"],["Macarena","Damso"],["Lettre à une femme","Ninho"],
-    ["Tchikita","Jul"],["Bella","Gims"],["Désolé","Sexion d'Assaut"],["Je danse le mia","IAM"],
-    ["La fièvre","Suprême NTM"],["Caroline","MC Solaar"],["La boulette","Diam's"],["Trop beau","Lomepal"],
-    ["Réseaux","Niska"],["Zoo","Kaaris"],["Meuda","Tiakola"],["Cosmo","Soprano"],["Dommage","Bigflo & Oli"],
-    ["Désaccordé","Vald"],["Toucher l'horizon","Oxmo Puccino"],["Gravé dans la roche","Sniper"],
-    ["Tonton du bled","113"],["Lettre à la République","Kery James"],["Otto","SCH"]
-  ],
-  // tirés des playlists Deezer « Rapstars » et « Actu Rap » (octobre 2026)
-  "Rap récent": [
-    ["Pocahontas","PLK"],["Faut pas","PLK"],["Pilote","PLK"],["Cœur de pirate","Tiakola"],["Sans toi","Tiakola"],
-    ["Meuda","Tiakola"],["Manon B","Tiakola"],["Cartier Santos","SDM"],["Bolide allemand","SDM"],["Pas comme eux","SDM"],
-    ["GDG","Booba"],["Dolce Camara","Booba"],["Pineapple","Leto"],["Lululemon","Leto"],["Baraque au bled","Djadja & Dinaz"],
-    ["Cybertesla","L2B"],["Précipices","SCH"],["Laissez moi seul","Jul"],["Différent","Bouss"],["Je pense à toi","Guy2bezbar"],
-    ["Monaco","Guy2bezbar"],["Zou Bisou","Theodora"],["Kongolese sous BBL","Theodora"],["Belvedere","Bello&Dallas"],
-    ["Bracelet","Ninho"],["Jefe","Ninho"],["Collabo","Ninho"],["600K","Heuss L'enfoiré"],["Tu connais","Werenoi"],
-    ["Poney","Werenoi"],["Solitaire","Werenoi"],["Kyky2bondy","Hamza"],["Mami Wata","Gazo"],["Die","Gazo"],
-    ["Les absents avaient raison","Ziak"],["Blanche","Maes"],["Kraken","La Mano 1.9"],["Fille à papa","Vacra"],["Rania","Niro"]
-  ],
-  "Pop": [
-    ["Alors on danse","Stromae"],["Papaoutai","Stromae"],["Balance ton quoi","Angèle"],["Tout oublier","Angèle"],
-    ["Christine","Christine and the Queens"],["Dernière danse","Indila"],["Jour 1","Louane"],["Je veux","Zaz"],
-    ["Je m'en vais","Vianney"],["Andalouse","Kendji Girac"],["Ma philosophie","Amel Bent"],["La grenade","Clara Luciani"],
-    ["Le dernier jour du disco","Juliette Armanet"],["Djadja","Aya Nakamura"],["Viens on s'aime","Slimane"],
-    ["Paris-Seychelles","Julien Doré"],["Juste une photo de toi","M. Pokora"],["Sur ma route","Black M"],
-    ["La symphonie des éclairs","Zaho de Sagazan"],["N'y pense plus","Tayc"],["Il est où le bonheur","Christophe Maé"]
-  ],
-  "Chanson": [
-    ["La vie en rose","Édith Piaf"],["Non, je ne regrette rien","Édith Piaf"],["Ne me quitte pas","Jacques Brel"],
-    ["La bohème","Charles Aznavour"],["Les Champs-Élysées","Joe Dassin"],["Bonnie and Clyde","Serge Gainsbourg"],
-    ["Ella, elle l'a","France Gall"],["Les lacs du Connemara","Michel Sardou"],["Allumer le feu","Johnny Hallyday"],
-    ["Alexandrie Alexandra","Claude François"],["L'Aziza","Daniel Balavoine"],["Quand la musique est bonne","Jean-Jacques Goldman"],
-    ["Je l'aime à mourir","Francis Cabrel"],["Mistral gagnant","Renaud"],["Désenchantée","Mylène Farmer"],
-    ["Paroles, paroles","Dalida"],["Casser la voix","Patrick Bruel"],["Pour que tu m'aimes encore","Céline Dion"],
-    ["Joe le taxi","Vanessa Paradis"],["Et moi, et moi, et moi","Jacques Dutronc"]
-  ],
-  "Rock": [
-    ["Le vent nous portera","Noir Désir"],["J't'emmène au vent","Louise Attaque"],["J'ai demandé à la lune","Indochine"],
-    ["L'aventurier","Indochine"],["Un autre monde","Téléphone"],["Antisocial","Trust"],["Je dis aime","-M-"],
-    ["Voilà l'été","Les Négresses Vertes"],["L'hymne de nos campagnes","Tryo"],["Tomber la chemise","Zebda"],
-    ["Lambé an dro","Matmatah"],["Marcia Baila","Les Rita Mitsouko"]
-  ],
-  "Électro": [
-    ["One More Time","Daft Punk"],["Around the World","Daft Punk"],["D.A.N.C.E.","Justice"],["Titanium","David Guetta"],
-    ["Lisztomania","Phoenix"],["Midnight City","M83"],["Sexy Boy","Air"],["World, Hold On","Bob Sinclar"],["This Girl","Kungs"]
-  ]
+// Chaque catégorie = une ou plusieurs playlists Deezer (ids publics, éditoriales Deezer en priorité)
+const GENRES = {
+  "France": {
+    "Rap récent": [3272614282, 1071669561, 9563400362],
+    "Rap classique": [4676814864, 6568026624, 14056390461],
+    "Pop": [1189520191, 1420459465],
+    "Chanson": [700895155, 791349661],
+    "Rock": [847814561, 9128596442],
+    "French touch": [6423436964]
+  },
+  "Monde": {
+    "Hits": [3155776842, 53362031],
+    "Rap US": [1996494362, 1724212365, 4676818664, 7662551722],
+    "Pop": [8282573142, 4888783264],
+    "R&B": [1314725125],
+    "Rock": [1306931615],
+    "Électro": [1902101402],
+    "Années 80": [867825522],
+    "Années 90": [878989033],
+    "Années 2000": [1977689462]
+  }
 };
+const ALL = "Tout";
 const STEPS = [0.1, 0.5, 2, 8, 15];
 const MAX = STEPS[STEPS.length - 1];
 const $ = id => document.getElementById(id);
 
 const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
   .replace(/\(.*?\)|\[.*?\]/g, "").replace(/&/g, "et").replace(/[^a-z0-9]/g, "");
+// "Hey Jude - Remastered 2015" -> "Hey Jude"
+const clean = t => t.replace(/\s+-\s+.*$/, "").replace(/\s*[(\[].*?[)\]]/g, "").trim();
 console.assert(norm("Désenchantée") === norm("desenchantee ") && norm("Au DD (Remix)") === "audd", "norm");
+console.assert(clean("Hey Jude - Remastered 2015") === "Hey Jude" && clean("Pilote (feat. Hamza)") === "Pilote", "clean");
 
 const store = {
   get(k) { try { return +localStorage.getItem("dixieme:" + k) || 0; } catch { return 0; } },
   set(k, v) { try { localStorage.setItem("dixieme:" + k, v); } catch {} }
 };
 
-let genre = "Tout", round = null, nextRound = null, score = 0, streak = 0, best = store.get("best");
+let genre = "France/Rap récent", round = null, nextRound = null, score = 0, streak = 0, best = store.get("best");
+const played = new Set();
 const audio = new Audio();
 audio.preload = "auto";
-let stopTimer = 0, raf = 0;
-
-function pool() { return genre === "Tout" ? Object.values(SONGS).flat() : SONGS[genre]; }
+let stopTimer = 0, raf = 0, loadToken = 0;
 
 // Deezer n'envoie pas d'en-tête CORS : on passe par JSONP.
-function deezer(q) {
+function deezer(path) {
   return new Promise((resolve, reject) => {
     const cb = "dz" + Math.random().toString(36).slice(2);
     const s = document.createElement("script");
     const done = () => { delete window[cb]; s.remove(); clearTimeout(t); };
     const t = setTimeout(() => { done(); reject(new Error("timeout")); }, 8000);
-    window[cb] = d => { done(); resolve(d); };
+    window[cb] = d => { done(); d && d.error ? reject(new Error(d.error.message)) : resolve(d); };
     s.onerror = () => { done(); reject(new Error("network")); };
-    s.src = "https://api.deezer.com/search?limit=10&output=jsonp&callback=" + cb + "&q=" + encodeURIComponent(q);
+    s.src = "https://api.deezer.com/" + path + (path.includes("?") ? "&" : "?") + "output=jsonp&callback=" + cb;
     document.head.appendChild(s);
   });
 }
 
-async function loadRound(tries = 4) {
-  const list = pool();
-  for (let i = 0; i < tries; i++) {
-    const [t, a] = list[Math.floor(Math.random() * list.length)];
-    if (round && round.song[0] === t) continue;
-    try {
-      const { data = [] } = await deezer(a + " " + t);
-      const withPreview = data.filter(d => d.preview);
-      const na = norm(a);
-      const hit = withPreview.find(d => norm(d.title).startsWith(norm(t)) && (norm(d.artist.name).includes(na) || na.includes(norm(d.artist.name))))
-        || withPreview.find(d => norm(d.title).startsWith(norm(t)));
-      if (hit) return { song: [t, a], track: hit };
-    } catch { /* on tente un autre morceau */ }
+const playlists = {};
+function loadPlaylist(id) {
+  return playlists[id] ??= deezer(`playlist/${id}/tracks?limit=500`)
+    .then(d => (d.data || []).filter(t => t.preview && t.readable))
+    .catch(() => { delete playlists[id]; return []; });
+}
+
+function genreIds(g) {
+  if (g === ALL) return Object.values(GENRES).flatMap(o => Object.values(o).flat());
+  const [region, name] = g.split("/");
+  return GENRES[region][name];
+}
+
+async function pool(g) {
+  const lists = await Promise.all(genreIds(g).map(loadPlaylist));
+  const byId = new Map();
+  lists.flat().forEach(t => byId.set(t.id, t));
+  return [...byId.values()];
+}
+
+async function loadRound(g) {
+  const list = await pool(g);
+  if (!list.length) throw new Error("playlist vide");
+  let fresh = list.filter(t => !played.has(t.id) && t.id !== round?.track.id);
+  if (!fresh.length) { played.clear(); fresh = list; }
+  for (let i = 0; i < 4; i++) {
+    const pick = fresh[Math.floor(Math.random() * fresh.length)];
+    // les liens d'extrait expirent : on redemande le morceau pour en avoir un neuf
+    const track = await deezer("track/" + pick.id).catch(() => null);
+    if (track?.preview) return { track, list };
   }
   throw new Error("Deezer ne répond pas");
 }
 
 function renderChips() {
-  $("genres").innerHTML = "";
-  ["Tout", ...Object.keys(SONGS)].forEach(g => {
+  const root = $("genres"); root.innerHTML = "";
+  const chip = (label, value, parent) => {
     const b = document.createElement("button");
-    b.className = "chip"; b.textContent = g; b.setAttribute("aria-pressed", g === genre);
-    b.onclick = () => { if (g !== genre) { genre = g; nextRound = null; renderChips(); start(); } };
-    $("genres").appendChild(b);
-  });
+    b.className = "chip"; b.textContent = label; b.setAttribute("aria-pressed", value === genre);
+    b.onclick = () => { if (value !== genre) { genre = value; nextRound = null; renderChips(); start(); } };
+    parent.appendChild(b);
+  };
+  const top = document.createElement("div"); top.className = "group"; root.appendChild(top);
+  chip("Tout mélanger", ALL, top);
+  for (const [region, genres] of Object.entries(GENRES)) {
+    const row = document.createElement("div"); row.className = "group";
+    row.innerHTML = `<span class="group-label">${region}</span>`;
+    Object.keys(genres).forEach(name => chip(name, region + "/" + name, row));
+    root.appendChild(row);
+  }
+}
+
+function fillTitles(list) {
   const dl = $("titles"); dl.innerHTML = "";
-  pool().forEach(([t, a]) => { const o = document.createElement("option"); o.value = t; o.label = a; dl.appendChild(o); });
+  const seen = new Set();
+  list.forEach(t => {
+    const title = clean(t.title_short || t.title), k = norm(title);
+    if (seen.has(k)) return;
+    seen.add(k);
+    const o = document.createElement("option"); o.value = title; o.label = t.artist.name; dl.appendChild(o);
+  });
 }
 
 function renderMarks() {
@@ -289,17 +300,20 @@ async function start() {
   stop(); $("end").hidden = true; $("next").hidden = true; $("tries").innerHTML = "";
   $("guess").value = ""; setPlaying(false); $("play").disabled = true;
   $("status").textContent = "Chargement du morceau…";
+  const g = genre, token = ++loadToken;
   try {
-    const r = await (nextRound || loadRound());
+    const r = await (nextRound || loadRound(g));
+    if (token !== loadToken) return; // la catégorie a changé pendant le chargement
     nextRound = null;
-    round = { ...r, step: 0, over: false };
+    round = { track: r.track, step: 0, over: false };
+    played.add(r.track.id);
     audio.src = r.track.preview;
-    renderMarks(); setPlaying(true);
+    fillTitles(r.list); renderMarks(); setPlaying(true);
     $("status").textContent = "Appuie sur lecture.";
-    nextRound = loadRound().catch(() => null).then(x => x || loadRound()); // précharge le suivant
+    nextRound = loadRound(g).catch(() => null).then(x => x || loadRound(g)); // précharge le suivant
     nextRound.catch(() => {});
   } catch (e) {
-    $("status").textContent = "Impossible de joindre Deezer. Vérifie ta connexion puis recharge la page.";
+    if (token === loadToken) $("status").textContent = "Impossible de joindre Deezer. Vérifie ta connexion puis recharge la page.";
   }
 }
 
@@ -369,7 +383,8 @@ $("form").onsubmit = e => {
   const g = $("guess").value.trim();
   if (!g || !round || round.over) return;
   $("guess").value = "";
-  if (norm(g) === norm(round.song[0]) || norm(g) === norm(round.track.title)) return finish(true);
+  const t = round.track;
+  if (norm(g) && [clean(t.title), t.title_short, t.title].some(x => x && norm(x) === norm(g))) return finish(true);
   addTry(g); advance();
 };
 $("next").onclick = start;
